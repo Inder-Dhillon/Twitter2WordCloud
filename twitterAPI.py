@@ -4,26 +4,18 @@
 
 
 from tweepy.streaming import StreamListener
-from tweepy import Stream
 import tweepy
-import os
 import credentials as creds
+import OSCConnector as osc
+import NLPHandler as nlp
+import time
 
-# SETUP
-# --------------------------------------------------------------
-
-# 1. Authenticate the Tweepy API
 
 auth = tweepy.OAuthHandler(creds.CONSUMER_KEY, creds.CONSUMER_SECRET)
 auth.set_access_token(creds.ACCESS_TOKEN, creds.ACCESS_TOKEN_SECRET)
 api = tweepy.API(auth)
 
-# get save path (pwd in command line)
-save_path = os.getcwd()  # current working directory
-name_of_file = 'results.txt'
-path_address = os.path.join(save_path, name_of_file)
-# print path_address
-file_exists = os.path.isfile(path_address)
+
 
 
 # --------------------------------------------------------------
@@ -56,13 +48,16 @@ def get_tweets(word, n, write=True):
 
 
 class StdOutListener(StreamListener):
-    def on_status(self, status):
+    def on_status(self, tweet):
         try:
-            with open(path_address, 'a') as file:
-                if (not status.retweeted) and ('RT @' not in status.text):
-                    tweet_text = status.text
-                    file.write(tweet_text + '\n')
-                    print(tweet_text)
+            tweet_text = tweet.text.lower().replace("\n", " ") + "\n"
+            if (not tweet.retweeted) and ('rt @' not in tweet_text):
+                try:
+                    tweet_text = tweet.extended_tweet['full_text'].lower().replace("\n", " ") + "\n"
+                finally:
+                    time.sleep(5)
+                    for phrase in nlp.get_noun_phrases(tweet_text):
+                        osc.send(phrase)
         except:
             pass
 
@@ -73,12 +68,11 @@ class StdOutListener(StreamListener):
 
 def track(word: str):
     listener = StdOutListener()
-    stream = Stream(auth, listener)
-    stream.filter(track=[word], languages=["en"], )
-    stream.filter()
+    stream = tweepy.Stream(auth, listener)
+    stream.filter(track=[word], languages=["en"])
+    time.sleep(5)
     stream.disconnect()
     return
 
 
-# track("#Election2020")
-get_tweets("#Election2020", 1000)
+track("#Election2020")

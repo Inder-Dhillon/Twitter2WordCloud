@@ -8,18 +8,13 @@ import tweepy
 import credentials as creds
 import OSCConnector as osc
 import NLPHandler as nlp
+import string
 import time
 
 
 auth = tweepy.OAuthHandler(creds.CONSUMER_KEY, creds.CONSUMER_SECRET)
 auth.set_access_token(creds.ACCESS_TOKEN, creds.ACCESS_TOKEN_SECRET)
 api = tweepy.API(auth)
-
-
-
-
-# --------------------------------------------------------------
-# 4. Define your functions
 
 
 def home_timeline():
@@ -37,11 +32,11 @@ def get_tweets(word, n, write=True):
         if (not tweet.retweeted) and ('rt @' not in tweet_text) and en_lang:
             print(tweet_text)
             if write:
-                with open(path_address, 'a') as file:
+                with open('results.txt', 'a') as file:
                     try:
                         file.write(tweet_text)
-                    except:
-                        print("Exception Occurred")
+                    except Exception as e:
+                        print(e)
                 return
             else:
                 return tweets
@@ -56,8 +51,8 @@ class StdOutListener(StreamListener):
                     tweet_text = tweet.extended_tweet['full_text'].lower().replace("\n", " ") + "\n"
                 finally:
                     time.sleep(5)
-                    for phrase in nlp.get_noun_phrases(tweet_text):
-                        osc.send(phrase)
+                    tweet_text = ''.join(filter(lambda x: x in set(string.printable), tweet_text))
+                    osc.send(tweet_text)
         except:
             pass
 
@@ -70,7 +65,6 @@ def track(word: str):
     listener = StdOutListener()
     stream = tweepy.Stream(auth, listener)
     stream.filter(track=[word], languages=["en"])
-    time.sleep(5)
     stream.disconnect()
     return
 

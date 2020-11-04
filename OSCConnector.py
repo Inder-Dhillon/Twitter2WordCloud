@@ -8,4 +8,4 @@ client = SimpleUDPClient(ip, port)  # Create client
 
 def send(msg):
     client.send_message(address, msg)
-    print("Message Sent to Processing!")
+    print("Msg Sent : " + msg)
